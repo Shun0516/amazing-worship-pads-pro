@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+:root {
+  --color-church-deep-blue: #0731c5;
+  --color-church-mid-blue: #097add;
+  --color-church-bright-cyan: #0cb1f0;
+  --color-church-soft-white: #f0f3ff;
+  --color-church-dark-bg: #010719;
+}
+
+/* Complete Print Fix for PDF Export */
+@media print {
+  /* Hide standard browser headers/footers */
+  @page {
+    margin: 0;
+  }
+
+  /* FORCE HIDE sidebars, navigation, modals, and print:hidden elements */
+  header, 
+  aside, 
+  nav,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Reset body and wrapper elements without forcing hidden children to show */
+  html, 
+  body, 
+  #root, 
+  main,
+  .h-full,
+  .h-screen,
+  .flex-1 {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Add print margin via body padding */
+  body {
+    padding: 1.5cm !important;
+  }
+
+  /* Keep chord and lyric pairs together across page breaks */
+  .font-mono {
+    font-family: monospace !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Ensure song content spans full printable width */
+  .max-w-3xl, 
+  .max-w-5xl {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+}

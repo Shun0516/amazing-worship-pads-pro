@@ -1,0 +1,20 @@
+{
+  "short_name": "AWPP",
+  "name": "Amazing Worship Pads Pro",
+  "icons": [
+    {
+      "src": "android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#010719",
+  "background_color": "#010719"
+}
