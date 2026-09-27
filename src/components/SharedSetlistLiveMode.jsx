@@ -3,8 +3,7 @@ import {
   ChevronLeft, ChevronRight, Play, Pause, Type, Hash, ListFilter, ArrowLeft 
 } from 'lucide-react';
 
-export default function SharedSetlistLiveMode() {
-  const [payload, setPayload] = useState(null);
+export default function SharedSetlistLiveMode({ setlist, songs: initialSongs }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [songKeyOffsets, setSongKeyOffsets] = useState({});
   const [chordMode, setChordMode] = useState('chords');
@@ -14,22 +13,6 @@ export default function SharedSetlistLiveMode() {
   const [scrollSpeed, setScrollSpeed] = useState(1);
 
   const scrollRef = useRef(null);
-
-  // Decode the shared setlist payload from URL query parameters on load
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const sharedParam = params.get('sharedSetlist');
-    
-    if (sharedParam) {
-      try {
-        const decodedString = decodeURIComponent(atob(sharedParam));
-        const parsed = JSON.parse(decodedString);
-        setPayload(parsed);
-      } catch (e) {
-        console.error("Failed to parse shared setlist link:", e);
-      }
-    }
-  }, []);
 
   // Auto-scroll effect
   useEffect(() => {
@@ -44,7 +27,7 @@ export default function SharedSetlistLiveMode() {
     return () => clearInterval(interval);
   }, [isScrolling, scrollSpeed]);
 
-  if (!payload) {
+  if (!setlist || !initialSongs) {
     return (
       <div className="fixed inset-0 z-50 bg-[#010719] text-white flex flex-col items-center justify-center p-4">
         <p className="text-sm font-bold text-slate-400 mb-2">Loading Shared Setlist...</p>
@@ -53,7 +36,7 @@ export default function SharedSetlistLiveMode() {
     );
   }
 
-  const songs = payload.songs || [];
+  const songs = initialSongs || [];
   const currentSong = songs[currentIndex] || songs[0];
   const currentKeyOffset = songKeyOffsets[currentIndex] || 0;
 
@@ -65,7 +48,7 @@ export default function SharedSetlistLiveMode() {
   };
 
   const handleBackToSetlist = () => {
-    window.location.href = window.location.pathname;
+    window.location.href = '/';
   };
 
   if (!currentSong) {
@@ -177,17 +160,14 @@ export default function SharedSetlistLiveMode() {
 
   return (
     <div className="fixed inset-0 z-50 bg-[#010719] text-white flex flex-col overflow-hidden">
-      
       {/* TOP CONTROL BAR */}
       <div className="bg-[#0a0f1d] border-b border-slate-800 px-4 py-3 flex flex-wrap items-center justify-between gap-4 select-none">
-        
-        {/* Left: Back to Setlist Button & Song Dropdown */}
         <div className="flex items-center gap-3">
           <button 
             onClick={handleBackToSetlist}
             className="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 bg-[#050811] hover:bg-slate-800 border border-slate-800 text-slate-300 transition-colors"
           >
-            <ArrowLeft className="w-3.5 h-3.5 text-cyan-400" /> Back to Setlist
+            <ArrowLeft className="w-3.5 h-3.5 text-cyan-400" /> Back to App
           </button>
 
           <div className="flex items-center gap-2 bg-[#050811] px-3 py-1.5 rounded-lg border border-slate-800">
@@ -209,10 +189,7 @@ export default function SharedSetlistLiveMode() {
           </div>
         </div>
 
-        {/* Center/Right: Live Display Adjusters */}
         <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-slate-300">
-          
-          {/* Key Transpose */}
           <div className="flex items-center gap-1.5 bg-[#050811] px-2.5 py-1.5 rounded-lg border border-slate-800">
             <span>KEY</span>
             <button onClick={() => handleTranspose(-1)} className="hover:text-cyan-400 px-1 text-sm">-</button>
@@ -220,7 +197,6 @@ export default function SharedSetlistLiveMode() {
             <button onClick={() => handleTranspose(1)} className="hover:text-cyan-400 px-1 text-sm">+</button>
           </div>
 
-          {/* Chord Mode Toggle */}
           <button 
             onClick={() => {
               if (chordMode === 'chords') setChordMode('nashville');
@@ -239,7 +215,6 @@ export default function SharedSetlistLiveMode() {
             </span>
           </button>
 
-          {/* Sections Toggle */}
           <button 
             onClick={() => setShowSections(!showSections)}
             className={`px-2.5 py-1.5 rounded-lg border transition-colors flex items-center gap-1 ${
@@ -250,7 +225,6 @@ export default function SharedSetlistLiveMode() {
             <span>Sections</span>
           </button>
 
-          {/* Font Size Adjuster */}
           <div className="flex items-center gap-1.5 bg-[#050811] px-2.5 py-1.5 rounded-lg border border-slate-800">
             <Type className="w-3.5 h-3.5 text-slate-400" />
             <button onClick={() => setFontSize(prev => Math.max(12, prev - 2))} className="hover:text-cyan-400 px-1">-</button>
@@ -258,7 +232,6 @@ export default function SharedSetlistLiveMode() {
             <button onClick={() => setFontSize(prev => Math.min(32, prev + 2))} className="hover:text-cyan-400 px-1">+</button>
           </div>
 
-          {/* Auto-scroll */}
           <div className="flex items-center gap-1.5 bg-[#050811] px-2.5 py-1.5 rounded-lg border border-slate-800">
             <button onClick={() => setIsScrolling(!isScrolling)} className="flex items-center gap-1 hover:text-cyan-400">
               {isScrolling ? <Pause className="w-3 h-3 text-amber-400 fill-current" /> : <Play className="w-3 h-3 text-cyan-400 fill-current" />}
@@ -275,7 +248,6 @@ export default function SharedSetlistLiveMode() {
             </select>
           </div>
 
-          {/* Navigation Arrows */}
           <div className="flex items-center gap-1 border-l border-slate-800 pl-3">
             <button 
               onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
@@ -292,14 +264,12 @@ export default function SharedSetlistLiveMode() {
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-
         </div>
       </div>
 
       {/* SONG CONTENT AREA */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-10 flex flex-col items-center">
         <div className="w-full max-w-2xl space-y-8 pb-20">
-          
           <div className="text-left border-b border-slate-800/80 pb-4">
             <h1 className="text-4xl font-black text-white tracking-tight mb-1">{currentSong.title}</h1>
             <p className="text-xs text-slate-400 font-semibold">
@@ -346,12 +316,10 @@ export default function SharedSetlistLiveMode() {
           </div>
 
           <div className="mt-20 pt-6 border-t border-slate-800/80 text-center text-xs text-slate-500 font-sans font-medium">
-            {payload.footer || "Created by Hommer Angelo"}
+            {setlist?.footer || "Created by Hommer Angelo"}
           </div>
-
         </div>
       </div>
-
     </div>
   );
 }
