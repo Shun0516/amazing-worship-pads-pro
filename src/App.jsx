@@ -117,7 +117,7 @@ export default function App() {
   const activeSong = songs.find(s => s.id === activeSongId);
   const activeSetlist = setlists.find(s => s.id === activeSetlistId) || setlists[0];
 
-  // Save chart handler
+  // Save chart handler (updates in place if ID exists, otherwise creates new)
   const handleSaveSong = (songData) => {
     const enrichedSongData = {
       ...songData,
@@ -125,9 +125,11 @@ export default function App() {
     };
 
     setSongs(prev => {
-      const exists = prev.some(s => s.id === enrichedSongData.id);
-      if (exists) {
-        return prev.map(s => s.id === enrichedSongData.id ? enrichedSongData : s);
+      const index = prev.findIndex(s => s.id === enrichedSongData.id);
+      if (index !== -1) {
+        const updated = [...prev];
+        updated[index] = enrichedSongData;
+        return updated;
       }
       return [enrichedSongData, ...prev];
     });
@@ -313,6 +315,7 @@ export default function App() {
       <SongEditor 
         song={editingSong} 
         onSave={handleSaveSong} 
+        onDelete={handleDeleteSong}
         onCancel={() => {
           setIsEditorOpen(false);
           setEditingSong(null);
