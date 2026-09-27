@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import EmptyLandingState from './components/EmptyLandingState';
 import SongViewer from './components/SongViewer';
-import SharedSongViewer from './components/SharedSongViewer';
+import SharedSongView from './components/SharedSongView';
 import SongEditor from './components/SongEditor';
 import SetlistManager from './components/SetlistManager';
 import LiveModeViewer from './components/LiveModeViewer';
@@ -32,6 +32,7 @@ export default function App() {
   // Full screen Live Mode & Shared View State
   const [isLiveModeOpen, setIsLiveModeOpen] = useState(false);
   const [isSharedView, setIsSharedView] = useState(false);
+  const [isSharedSongView, setIsSharedSongView] = useState(false);
   const [sharedSongData, setSharedSongData] = useState(null);
 
   // Full screen Editor State
@@ -65,9 +66,15 @@ export default function App() {
 
   // Handle URL share check for clean slugs or legacy shared params
   useEffect(() => {
-    // Check if the current URL path contains /share/
+    // Check if the current URL path contains setlist /share/
     if (window.location.pathname.includes('/share/')) {
       setIsSharedView(true);
+      return;
+    }
+
+    // Check if the current URL path contains individual song /song-share/
+    if (window.location.pathname.includes('/song-share/')) {
+      setIsSharedSongView(true);
       return;
     }
 
@@ -286,7 +293,12 @@ export default function App() {
     reader.readAsText(file);
   };
 
-  // IF RECEIVING A SHARED SINGLE SONG LINK
+  // IF RECEIVING A DATABASE-DRIVEN SHORT SONG LINK
+  if (isSharedSongView) {
+    return <SharedSongView />;
+  }
+
+  // IF RECEIVING A LEGACY BASE64 SHARED SINGLE SONG LINK
   if (sharedSongData) {
     return <SharedSongViewer songData={sharedSongData} />;
   }
@@ -523,44 +535,46 @@ export default function App() {
                     </div>
                   </div>
 
-                  {filteredSongs.length > 0 ? (
-                    <div className="flex-1 space-y-2 mb-4 overflow-y-auto pr-1">
-                      {filteredSongs.map(s => (
-                        <div 
-                          key={s.id}
-                          onClick={() => setActiveSongId(s.id)}
-                          className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                            activeSongId === s.id 
-                              ? 'bg-cyan-950/30 border-cyan-500/40' 
-                              : 'bg-[#0a0f1d]/50 border-slate-800/80 hover:bg-[#0a0f1d]'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <h4 className="text-xs font-bold text-white truncate">{s.title}</h4>
-                            <span className="text-[10px] font-mono font-bold text-cyan-400 px-1.5 py-0.5 bg-cyan-950/60 rounded">
-                              {s.key}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-400 truncate">{s.artist || 'Unknown Artist'}</p>
+                  {/* SONG LIST ITEMS IN SIDEBAR */}
+                  <div className="flex-1 overflow-y-auto space-y-1 pr-1 mb-3">
+                    {filteredSongs.map(song => (
+                      <div 
+                        key={song.id}
+                        onClick={() => setActiveSongId(song.id)}
+                        className={`p-2.5 rounded-lg cursor-pointer transition-colors flex items-center justify-between ${
+                          activeSongId === song.id 
+                            ? 'bg-cyan-950/40 border border-cyan-500/40 text-white' 
+                            : 'hover:bg-slate-900/60 text-slate-300'
+                        }`}
+                      >
+                        <div className="truncate pr-2">
+                          <h4 className="text-xs font-bold truncate">{song.title}</h4>
+                          <p className="text-[10px] text-slate-500 truncate">{song.artist || 'Unknown artist'}</p>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-slate-800 rounded-xl mb-4 bg-[#0a0f1d]/40">
-                      <span className="p-2 bg-cyan-950/40 text-cyan-400 font-mono font-bold text-xs rounded-md mb-3 border border-cyan-500/20">
-                        [G]
-                      </span>
-                      <h3 className="text-xs font-bold text-white mb-1">Your charts live here.</h3>
-                      <p className="text-[11px] text-slate-500 leading-relaxed max-w-[180px]">
-                        Add songs from repertoire or import a file.
-                      </p>
-                    </div>
-                  )}
+                        {song.key && (
+                          <span className="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded text-[10px] font-mono text-cyan-400 shrink-0">
+                            {song.key}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
 
-                  <div className="space-y-2 mb-3 mt-auto">
+                  <div className="space-y-2 mt-auto">
                     <button 
                       onClick={() => {
-                        setEditingSong(null);
+                        setEditingSong({
+                          id: 'song-' + Date.now(),
+                          title: '',
+                          artist: '',
+                          key: 'G',
+                          capo: '0',
+                          timeSignature: '4/4',
+                          tempo: '120',
+                          language: 'English',
+                          sourceType: 'custom chart',
+                          chordPro: '{title: }\n{key: G}\n\n[G]Enter your chords [C]here'
+                        });
                         setIsEditorOpen(true);
                       }}
                       className="w-full py-2 bg-cyan-400 hover:bg-white text-slate-950 font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-1 shadow"
@@ -572,28 +586,20 @@ export default function App() {
                       <button 
                         onClick={handleImportLink}
                         disabled={isImporting}
-                        className="py-2 bg-[#0a0f1d] hover:bg-slate-800 border border-slate-800 text-slate-200 font-bold text-[11px] rounded-lg transition-colors flex items-center justify-center gap-1"
+                        className="py-1.5 bg-[#0a0f1d] hover:bg-slate-800 border border-slate-800 text-slate-300 font-bold text-[11px] rounded-lg transition-colors flex items-center justify-center gap-1"
                       >
-                        {isImporting ? (
-                          <Loader2 className="w-3 h-3 text-cyan-400 animate-spin" />
-                        ) : (
-                          <LinkIcon className="w-3 h-3 text-cyan-400" />
-                        )}
-                        Import link
+                        {isImporting ? <Loader2 className="w-3 h-3 animate-spin text-cyan-400" /> : <LinkIcon className="w-3 h-3" />}
+                        Import URL
                       </button>
-
                       <button 
-                        onClick={() => setIsFileModalOpen(true)}
-                        className="py-2 bg-[#0a0f1d] hover:bg-slate-800 border border-slate-800 text-slate-200 font-bold text-[11px] rounded-lg transition-colors flex items-center justify-center gap-1"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="py-1.5 bg-[#0a0f1d] hover:bg-slate-800 border border-slate-800 text-slate-300 font-bold text-[11px] rounded-lg transition-colors flex items-center justify-center gap-1"
                       >
-                        <Upload className="w-3 h-3 text-cyan-400" /> Import file
+                        <Upload className="w-3 h-3" />
+                        Import File
                       </button>
                     </div>
                   </div>
-
-                  <button className="text-[11px] font-semibold text-slate-500 hover:text-cyan-400 flex items-center gap-1 self-start transition-colors">
-                    <HelpCircle className="w-3.5 h-3.5" /> Quick guide
-                  </button>
                 </div>
               )}
 
@@ -601,65 +607,52 @@ export default function App() {
           )}
         </aside>
 
-        {/* MAIN VIEW AREA */}
-        <main className="flex-1 flex overflow-hidden">
+        {/* MAIN CONTENT WORKSPACE */}
+        <main className="flex-1 flex flex-col bg-[#010719] overflow-hidden">
           {activeTab === 'library' ? (
             activeSong ? (
               <SongViewer 
                 song={activeSong} 
-                onEdit={() => {
-                  setEditingSong(activeSong);
+                onEdit={(songToEdit) => {
+                  setEditingSong(songToEdit);
                   setIsEditorOpen(true);
                 }}
-                onDelete={() => handleDeleteSong(activeSong.id)}
+                onDelete={handleDeleteSong}
               />
             ) : (
-              <EmptyLandingState view="library" />
+              <EmptyLandingState 
+                onNewSong={() => {
+                  setEditingSong({
+                    id: 'song-' + Date.now(),
+                    title: '',
+                    artist: '',
+                    key: 'G',
+                    capo: '0',
+                    timeSignature: '4/4',
+                    tempo: '120',
+                    language: 'English',
+                    sourceType: 'custom chart',
+                    chordPro: '{title: }\n{key: G}\n\n[G]Enter your chords [C]here'
+                  });
+                  setIsEditorOpen(true);
+                }}
+                onImportLink={handleImportLink}
+                onImportFile={() => fileInputRef.current?.click()}
+              />
             )
           ) : (
             <SetlistManager 
-              setlist={activeSetlist}
               setlists={setlists}
               setSetlists={setSetlists}
-              librarySongs={songs}
               activeSetlistId={activeSetlistId}
               setActiveSetlistId={setActiveSetlistId}
+              librarySongs={songs}
+              onOpenLiveMode={() => setIsLiveModeOpen(true)}
             />
           )}
         </main>
+
       </div>
-
-      {/* FILE IMPORT MODAL */}
-      {isFileModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#0f141e] border border-slate-800 w-full max-w-sm rounded-xl p-6 relative">
-            <button 
-              onClick={() => setIsFileModalOpen(false)} 
-              className="absolute top-4 right-4 text-slate-400 hover:text-white"
-            >
-              <X className="w-4 h-4" />
-            </button>
-            <h3 className="text-sm font-bold text-white mb-2">Import File</h3>
-            <p className="text-xs text-slate-400 mb-4">
-              Select a text or ChordPro file (.txt, .pro, .chordpro, .chopro, .crd).
-            </p>
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full py-2 bg-cyan-400 hover:bg-white text-slate-950 font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              <Upload className="w-4 h-4" /> Select File
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* AUTH MODAL */}
-      {isAuthModalOpen && (
-        <AuthModal 
-          isOpen={isAuthModalOpen} 
-          onClose={() => setIsAuthModalOpen(false)} 
-        />
-      )}
 
     </div>
   );
