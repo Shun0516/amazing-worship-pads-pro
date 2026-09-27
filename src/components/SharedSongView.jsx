@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 import { Loader2, Music } from 'lucide-react';
-import SongViewer from './SongViewer'; // Or your dedicated shared song viewer component
+import SharedSongViewer from './SharedSongViewer';
 
 export default function SharedSongView() {
   const [songData, setSongData] = useState(null);
@@ -62,7 +62,7 @@ export default function SharedSongView() {
 
   return (
     <div className="h-screen flex flex-col bg-[#010719] overflow-hidden">
-      <SongViewer song={songData} readOnly={true} />
+      <SharedSongViewer songData={songData} onBackToLibrary={() => window.location.href = '/'} />
     </div>
   );
 }
