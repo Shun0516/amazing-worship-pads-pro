@@ -5,8 +5,9 @@ import SharedSongViewer from './components/SharedSongViewer';
 import SongEditor from './components/SongEditor';
 import SetlistManager from './components/SetlistManager';
 import LiveModeViewer from './components/LiveModeViewer';
-import SharedSetlistLiveMode from './components/SharedSetlistLiveMode'; // <-- Newly linked component
+import ShareView from './components/ShareView';
 import AuthModal from './components/AuthModal';
+import { supabase } from './supabase';
 import { 
   Plus, Link as LinkIcon, Upload, HelpCircle, Music, 
   PanelLeftClose, PanelLeft, Search, BookOpen, ListFilter, Loader2,
@@ -27,10 +28,10 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('library'); // 'library' | 'setlists'
   const [activeSongId, setActiveSongId] = useState(null);
   const [activeSetlistId, setActiveSetlistId] = useState(null);
-  
+
   // Full screen Live Mode & Shared View State
   const [isLiveModeOpen, setIsLiveModeOpen] = useState(false);
-  const [sharedLiveSetlist, setSharedLiveSetlist] = useState(null);
+  const [isSharedView, setIsSharedView] = useState(false);
   const [sharedSongData, setSharedSongData] = useState(null);
 
   // Full screen Editor State
@@ -62,20 +63,18 @@ export default function App() {
     localStorage.setItem('worship_setlists', JSON.stringify(setlists));
   }, [setlists]);
 
-  // Handle URL shared setlist or individual song live chart
+  // Handle URL share check for clean slugs or legacy shared params
   useEffect(() => {
+    // Check if the current URL path contains /share/
+    if (window.location.pathname.includes('/share/')) {
+      setIsSharedView(true);
+      return;
+    }
+
     const params = new URLSearchParams(window.location.search);
-    const sharedSetlistData = params.get('sharedSetlist');
     const sharedSongDataParam = params.get('sharedSong');
 
-    if (sharedSetlistData) {
-      try {
-        const decoded = JSON.parse(decodeURIComponent(atob(sharedSetlistData)));
-        setSharedLiveSetlist(decoded);
-      } catch (e) {
-        console.error("Failed to parse shared setlist link", e);
-      }
-    } else if (sharedSongDataParam) {
+    if (sharedSongDataParam) {
       try {
         const decodedSong = JSON.parse(decodeURIComponent(atob(sharedSongDataParam)));
         setSharedSongData(decodedSong);
@@ -161,7 +160,7 @@ export default function App() {
 
       const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
       const data = await response.json();
-      
+
       let parsedTitle = '';
       let parsedArtist = '';
       let parsedKey = 'G';
@@ -244,7 +243,7 @@ export default function App() {
     reader.onload = (event) => {
       let content = event.target?.result || '';
       const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
-      
+
       let parsedTitle = fileNameWithoutExt;
       let parsedArtist = '';
       let parsedKey = 'C';
@@ -292,9 +291,9 @@ export default function App() {
     return <SharedSongViewer songData={sharedSongData} />;
   }
 
-  // IF RECEIVING A SHARED SETLIST URL, DIRECTLY SHOW SHARED LIVE MODE VIEWER
-  if (sharedLiveSetlist) {
-    return <SharedSetlistLiveMode />;
+  // IF RECEIVING A SHARED SETLIST URL, DIRECTLY SHOW THE SUPABASE SHARE VIEW
+  if (isSharedView) {
+    return <ShareView />;
   }
 
   if (isEditorOpen) {
@@ -312,7 +311,7 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col bg-[#010719] text-slate-100 overflow-hidden font-sans">
-      
+
       {/* LIVE MODE VIEWER OVERLAY */}
       {isLiveModeOpen && (
         <LiveModeViewer 
@@ -370,12 +369,12 @@ export default function App() {
 
       {/* MAIN CONTAINER */}
       <div className="flex-1 flex overflow-hidden">
-        
+
         {/* DYNAMIC LEFT SIDEBAR */}
         <aside className={`bg-[#070a12] border-r border-slate-800 flex flex-col shrink-0 transition-all duration-300 ease-in-out ${
           isSidebarCollapsed ? 'w-16' : 'w-72'
         }`}>
-          
+
           {isSidebarCollapsed ? (
             <div className="flex-1 flex flex-col items-center py-4 space-y-6">
               <button 
@@ -416,7 +415,7 @@ export default function App() {
             </div>
           ) : (
             <div className="flex-1 flex flex-col p-4 overflow-y-auto">
-              
+
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <button 
@@ -582,7 +581,7 @@ export default function App() {
                         )}
                         Import link
                       </button>
-                      
+
                       <button 
                         onClick={() => setIsFileModalOpen(true)}
                         className="py-2 bg-[#0a0f1d] hover:bg-slate-800 border border-slate-800 text-slate-200 font-bold text-[11px] rounded-lg transition-colors flex items-center justify-center gap-1"
@@ -625,7 +624,6 @@ export default function App() {
               librarySongs={songs}
               activeSetlistId={activeSetlistId}
               setActiveSetlistId={setActiveSetlistId}
-              onOpenLiveMode={() => setIsLiveModeOpen(true)}
             />
           )}
         </main>

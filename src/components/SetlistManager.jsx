@@ -3,6 +3,7 @@ import {
   Printer, Share2, Play, Plus, X, Trash2, Edit2, GripVertical 
 } from 'lucide-react';
 import SetlistLiveMode from './SetlistLiveMode';
+import { supabase } from './supabase';
 
 export default function SetlistManager({ 
   setlist, 
@@ -17,7 +18,7 @@ export default function SetlistManager({
   const [titleInput, setTitleInput] = useState(setlist?.title || '');
   const [copied, setCopied] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState(null);
-  
+
   // LIVE MODE TOGGLE STATE
   const [isLiveModeOpen, setIsLiveModeOpen] = useState(false);
 
@@ -115,8 +116,8 @@ export default function SetlistManager({
     setDraggedIndex(null);
   };
 
-  // UPDATED SHARE HANDLER: Packs full setlist items & library songs for Live Mode display
-  const handleShareSetlist = () => {
+  // UPDATED SHARE HANDLER: Saves to Supabase and generates a clean short link
+  const handleShareSetlist = async () => {
     const setlistSongIds = (setlist.items || []).map(i => i.songId);
     const setlistSongs = librarySongs.filter(s => setlistSongIds.includes(s.id));
 
@@ -126,21 +127,36 @@ export default function SetlistManager({
       footer: "Created by Hommer Angelo"
     };
 
+    const baseSlug = (setlist.title || 'sunday-service')
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    
+    const slug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`;
+
     try {
-      const encoded = btoa(encodeURIComponent(JSON.stringify(shareablePayload)));
-      const shareUrl = `${window.location.origin}${window.location.pathname}?sharedSetlist=${encoded}`;
+      const { error } = await supabase
+        .from('shared_setlists')
+        .insert([{ slug, title: setlist.title, payload: shareablePayload }]);
+
+      if (error) throw error;
+
+      const shareUrl = `${window.location.origin}/share/${slug}`;
 
       navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 3000);
     } catch (e) {
-      alert("Failed to generate share link.");
+      console.error(e);
+      alert("Failed to generate short link.");
     }
   };
 
   return (
     <div className="flex-1 flex flex-col bg-[#010719] overflow-y-auto p-8 relative">
-      
+
       <span className="text-[10px] font-extrabold text-amber-500 uppercase tracking-widest mb-1 block">
         SETLIST BUILDER
       </span>
@@ -284,7 +300,7 @@ export default function SetlistManager({
               <X className="w-4 h-4" />
             </button>
             <h3 className="text-sm font-bold text-white mb-4">Add Song to Setlist</h3>
-            
+
             <div className="flex-1 overflow-y-auto space-y-2 pr-1">
               {librarySongs.map(song => (
                 <div 
