@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { parseChordPro } from '../utils/chordProParser';
+import { supabase } from '../supabase';
 import { 
   Printer, Share2, Edit3, Play, Pause, Plus, Minus, 
   Columns, Music, Check 
@@ -103,28 +104,41 @@ export default function SongViewer({ song, onEdit }) {
   const handlePrint = () => window.print();
 
   const handleShare = async () => {
+    const baseSlug = (song.title || 'worship-song')
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    const slug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`;
+
+    const payload = {
+      id: song.id || 'shared-' + Date.now(),
+      title: song.title || 'Untitled Song',
+      artist: song.artist || 'Unknown Artist',
+      key: song.key || 'C',
+      tempo: song.tempo || '',
+      timeSignature: song.timeSignature || '',
+      capo: song.capo || '0',
+      chordPro: song.chordPro || '',
+      notes: song.notes || ''
+    };
+
     try {
-      const payload = {
-        id: song.id || 'shared-' + Date.now(),
-        title: song.title || 'Untitled Song',
-        artist: song.artist || 'Unknown Artist',
-        key: song.key || 'C',
-        tempo: song.tempo || '',
-        timeSignature: song.timeSignature || '',
-        capo: song.capo || '0',
-        chordPro: song.chordPro || '',
-        notes: song.notes || ''
-      };
+      const { error } = await supabase
+        .from('shared_songs')
+        .insert([{ slug, title: payload.title, payload }]);
 
-      const encodedData = btoa(encodeURIComponent(JSON.stringify(payload)));
-      const baseUrl = window.location.origin + window.location.pathname;
-      const shareUrl = `${baseUrl}?sharedSong=${encodedData}`;
+      if (error) throw error;
 
-      await navigator.clipboard.writeText(shareUrl);
+      const shortUrl = `${window.location.origin}/song-share/${slug}`;
+      await navigator.clipboard.writeText(shortUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch (err) {
-      alert("Failed to copy link to clipboard.");
+      console.error(err);
+      alert("Failed to generate short link.");
     }
   };
 
@@ -132,7 +146,7 @@ export default function SongViewer({ song, onEdit }) {
 
   return (
     <div className="relative flex-1 flex flex-col bg-[#02050a] text-slate-100 overflow-hidden font-mono">
-      
+
       {/* GLOBAL EMBEDDED PRINT STYLES */}
       <style>{`
         @media print {
@@ -189,7 +203,7 @@ export default function SongViewer({ song, onEdit }) {
 
       {/* SCROLLABLE MAIN CONTENT */}
       <div ref={containerRef} className="printable-area flex-1 overflow-y-auto p-6 md:p-10 space-y-6">
-        
+
         {/* BRAND HEADER FOR PDF PRINT */}
         <div className="print-header-brand">
           <div className="flex items-center gap-2">
@@ -273,7 +287,7 @@ export default function SongViewer({ song, onEdit }) {
 
         {/* PERFORMANCE CONTROLS TOOLBAR (HIDDEN IN PRINT) */}
         <div className="print-hide bg-[#070c18] border border-slate-800/80 rounded-xl p-2.5 flex items-center justify-between flex-wrap gap-4 font-sans">
-          
+
           {/* KEY TRANSPOSE CONTROLS */}
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">KEY</span>
@@ -371,7 +385,7 @@ export default function SongViewer({ song, onEdit }) {
               >
                 {item.parts.map((p, pIdx) => {
                   const chordText = formatChordDisplay(p.chord);
-                  
+
                   return (
                     <span key={pIdx} className="inline-flex flex-col justify-end">
                       {/* CHORD ROW */}
@@ -416,7 +430,7 @@ export default function SongViewer({ song, onEdit }) {
 
         <div className="flex items-center gap-2 pr-1">
           <span className="text-[10px] font-extrabold text-slate-400 uppercase">SPEED</span>
-          
+
           <button 
             onClick={() => setScrollSpeed(prev => Math.max(1, prev - 1))}
             className="p-1 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 rounded"
