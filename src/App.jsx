@@ -642,6 +642,7 @@ export default function App() {
             )
           ) : (
             <SetlistManager 
+              setlist={activeSetlist}
               setlists={setlists}
               setSetlists={setSetlists}
               activeSetlistId={activeSetlistId}
