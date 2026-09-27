@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabase';
-import SharedSetlistLiveMode from './SharedSetlistLiveMode';
+import SetlistLiveMode from './SetlistLiveMode';
 import { Loader2 } from 'lucide-react';
 
 export default function ShareView() {
@@ -10,7 +10,6 @@ export default function ShareView() {
 
   useEffect(() => {
     async function fetchSharedSetlist() {
-      // Extract the slug from the URL (e.g., /share/sunday-service-abc1 -> sunday-service-abc1)
       const pathParts = window.location.pathname.split('/');
       const slug = pathParts[pathParts.length - 1];
 
@@ -21,7 +20,6 @@ export default function ShareView() {
       }
 
       try {
-        // Create a timeout promise to prevent infinite hanging
         const timeoutPromise = new Promise((_, reject) => 
           setTimeout(() => reject(new Error("Connection timed out. Please check your internet.")), 6000)
         );
@@ -32,7 +30,6 @@ export default function ShareView() {
           .eq('slug', slug)
           .single();
 
-        // Race the fetch against the timeout
         const { data, error: sbError } = await Promise.race([fetchPromise, timeoutPromise]);
 
         if (sbError || !data) {
@@ -75,10 +72,15 @@ export default function ShareView() {
     );
   }
 
+  // Directly render the exact same SetlistLiveMode component used inside your app!
   return (
-    <SharedSetlistLiveMode 
+    <SetlistLiveMode 
       setlist={sharedData.setlist} 
-      songs={sharedData.songs} 
+      librarySongs={sharedData.songs} 
+      onClose={() => {
+        // When closing or exiting live mode from a shared link, send them back to home or show a landing state
+        window.location.href = '/';
+      }} 
     />
   );
 }
