@@ -355,7 +355,6 @@ export default function App() {
           <button 
             onClick={() => {
               setActiveTab('library');
-              setActiveSongId(null);
             }}
             className={`transition-colors ${
               activeTab === 'library' ? 'text-cyan-400 border-b-2 border-cyan-400 pb-0.5' : 'text-slate-400 hover:text-slate-200'
@@ -620,25 +619,7 @@ export default function App() {
                 onDelete={handleDeleteSong}
               />
             ) : (
-              <EmptyLandingState 
-                onNewSong={() => {
-                  setEditingSong({
-                    id: 'song-' + Date.now(),
-                    title: '',
-                    artist: '',
-                    key: 'G',
-                    capo: '0',
-                    timeSignature: '4/4',
-                    tempo: '120',
-                    language: 'English',
-                    sourceType: 'custom chart',
-                    chordPro: '{title: }\n{key: G}\n\n[G]Enter your chords [C]here'
-                  });
-                  setIsEditorOpen(true);
-                }}
-                onImportLink={handleImportLink}
-                onImportFile={() => fileInputRef.current?.click()}
-              />
+              <EmptyLandingState view="library" />
             )
           ) : (
             <SetlistManager 
