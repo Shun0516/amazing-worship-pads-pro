@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabase';
-import SetlistLiveMode from './SetlistLiveMode';
+import SetlistLiveMode from './SetlistLiveMode.jsx';
 import { Loader2 } from 'lucide-react';
 
 export default function ShareView() {
