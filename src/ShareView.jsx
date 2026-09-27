@@ -10,30 +10,39 @@ export default function ShareView() {
 
   useEffect(() => {
     async function fetchSharedSetlist() {
-      // Extract the slug from the URL (e.g., /share/sunday-service -> sunday-service)
+      // Extract the slug from the URL (e.g., /share/sunday-service-abc1 -> sunday-service-abc1)
       const pathParts = window.location.pathname.split('/');
       const slug = pathParts[pathParts.length - 1];
 
-      if (!slug) {
-        setError("Invalid share link.");
+      if (!slug || slug === 'share') {
+        setError("Invalid or missing share link.");
         setLoading(false);
         return;
       }
 
       try {
-        const { data, error } = await supabase
+        // Create a timeout promise to prevent infinite hanging
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Connection timed out. Please check your internet.")), 6000)
+        );
+
+        const fetchPromise = supabase
           .from('shared_setlists')
           .select('payload')
           .eq('slug', slug)
           .single();
 
-        if (error || !data) {
+        // Race the fetch against the timeout
+        const { data, error: sbError } = await Promise.race([fetchPromise, timeoutPromise]);
+
+        if (sbError || !data) {
           throw new Error("Setlist not found or link has expired.");
         }
 
         setSharedData(data.payload);
       } catch (err) {
-        setError(err.message);
+        console.error("ShareView error:", err);
+        setError(err.message || "Could not load setlist.");
       } finally {
         setLoading(false);
       }
@@ -55,12 +64,17 @@ export default function ShareView() {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-[#010719] text-white p-4 text-center">
         <h2 className="text-lg font-black text-red-400 mb-2">Oops!</h2>
-        <p className="text-xs text-slate-400">{error || "Could not load setlist."}</p>
+        <p className="text-xs text-slate-400 max-w-sm mb-4">{error || "Could not load setlist."}</p>
+        <button 
+          onClick={() => window.location.href = '/'}
+          className="px-4 py-2 bg-cyan-400 text-slate-950 font-bold text-xs rounded-lg"
+        >
+          Go to App
+        </button>
       </div>
     );
   }
 
-  // Pass the fetched setlist and songs into your Live Mode viewer
   return (
     <SharedSetlistLiveMode 
       setlist={sharedData.setlist} 
