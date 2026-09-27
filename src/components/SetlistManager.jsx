@@ -3,7 +3,7 @@ import {
   Printer, Share2, Play, Plus, X, Trash2, Edit2, GripVertical 
 } from 'lucide-react';
 import SetlistLiveMode from './SetlistLiveMode';
-import { supabase } from './supabase';
+import { supabase } from '../supabase';
 
 export default function SetlistManager({ 
   setlist, 
